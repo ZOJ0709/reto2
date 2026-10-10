@@ -16,6 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,22 +36,26 @@ fun AdminAuditScreen(
 ) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Auditoría", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text("Operaciones simuladas · control del 2,5 %", color = MaterialTheme.colorScheme.tertiary)
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                Text("Auditoría", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("Operaciones simuladas · control del 2,5 %", color = MaterialTheme.colorScheme.tertiary,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             OutlinedButton(onClick = onLogout) { Text("Salir") }
         }
         Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             AuditFilter.entries.forEach { filter ->
-                if (filter == state.filter) Button(onClick = { onFilter(filter) }) {
-                    Text(filter.label())
-                } else OutlinedButton(onClick = { onFilter(filter) }) {
-                    Text(filter.label())
+                if (filter == state.filter) Button(onClick = { onFilter(filter) }, modifier = Modifier.weight(1f)) {
+                    Text(filter.label(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                } else OutlinedButton(onClick = { onFilter(filter) }, modifier = Modifier.weight(1f)) {
+                    Text(filter.label(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            OutlinedButton(onClick = onReload) { Text("Actualizar") }
+        }
+        OutlinedButton(onClick = onReload, modifier = Modifier.align(androidx.compose.ui.Alignment.End)) {
+            Text("Actualizar")
         }
         Spacer(Modifier.height(10.dp))
         when {

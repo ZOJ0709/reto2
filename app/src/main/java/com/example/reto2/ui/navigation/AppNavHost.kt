@@ -103,7 +103,20 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 { viewModel.submit(true) }, { navController.popBackStack() })
         }
         composable(SIGNED_IN) {
+            LaunchedEffect(state.user) {
+                if (state.user == null) {
+                    navController.navigate(LOGIN) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            }
             when {
+                state.user == null -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Text("Cerrando sesión", modifier = Modifier.padding(top = 12.dp))
+                }
                 state.roleLoading -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator()
@@ -112,10 +125,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 state.isAdmin -> {
                     val auditViewModel: AdminAuditViewModel = viewModel()
                     val audit = auditViewModel.state.collectAsStateWithLifecycle().value
-                    AdminAuditScreen(audit, auditViewModel::filterChanged, auditViewModel::reload, {
-                        viewModel.logout()
-                        navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
-                    })
+                    AdminAuditScreen(audit, auditViewModel::filterChanged, auditViewModel::reload, viewModel::logout)
                 }
                 else -> {
                     val exchangeViewModel: ExchangeViewModel = viewModel()
@@ -126,10 +136,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                         onCurrencyChanged = exchangeViewModel::currencyChanged,
                         onRefresh = exchangeViewModel::refreshRate,
                         onTrade = exchangeViewModel::trade,
-                        onLogout = {
-                            viewModel.logout()
-                            navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
-                        },
+                        onLogout = viewModel::logout,
                         onOpenProfile = { navController.navigate(PROFILE) }
                     )
                 }
