@@ -13,12 +13,16 @@ captures/
 
 # Archivos locales (rutas del SDK y posibles claves)
 local.properties
+.env
+IA/
+
+# Material de análisis privado, no publicar en el repositorio
+/Claude-Análisis de requisitos para Reto #2 Android-20261010-1127.md
 
 # Claves y secretos
 *.jks
 *.keystore
 keystore.properties
-.env
 
 # Sistema operativo
 .DS_Store
@@ -29,5 +33,5 @@ Thumbs.db
 *.aab
 *.log
 
-# Firebase: descomenta si el repo es público
-# app/google-services.json
+# Configuración local de Firebase (contiene identificadores y API key del cliente)
+app/google-services.json
