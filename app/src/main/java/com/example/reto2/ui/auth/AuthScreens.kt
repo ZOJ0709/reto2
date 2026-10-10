@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -69,16 +68,5 @@ fun AuthForm(
         TextButton(onClick = onSwitch, enabled = !state.loading, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(if (registering) "Ya tengo una cuenta" else "Crear una cuenta")
         }
-    }
-}
-
-@Composable
-fun SignedInScreen(email: String, onLogout: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
-        Text("Sesión iniciada", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text(email, color = MaterialTheme.colorScheme.tertiary)
-        Spacer(Modifier.height(20.dp))
-        OutlinedButton(onClick = onLogout) { Text("Cerrar sesión") }
     }
 }

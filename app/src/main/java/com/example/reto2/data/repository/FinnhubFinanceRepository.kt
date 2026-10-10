@@ -89,23 +89,31 @@ class FinnhubFinanceRepository(
     override suspend fun userTransactions(userId: String): Result<List<CurrencyTransaction>> = runCatching {
         firestore.collection("transactions")
             .whereEqualTo("userId", userId)
-            .get().await().documents.mapNotNull { document ->
-                runCatching {
-                    CurrencyTransaction(
-                        id = document.id,
-                        userId = document.getString("userId")!!,
-                        side = TradeSide.valueOf(document.getString("side")!!),
-                        baseCurrency = document.getString("baseCurrency")!!,
-                        quoteCurrency = document.getString("quoteCurrency")!!,
-                        amount = BigDecimal(document.getString("amount")!!),
-                        referenceRate = BigDecimal(document.getString("referenceRate")!!),
-                        appliedRate = BigDecimal(document.getString("appliedRate")!!),
-                        deviationPercent = BigDecimal(document.getString("deviationPercent")!!),
-                        createdAt = document.getLong("createdAt")!!,
-                        status = TradeStatus.valueOf(document.getString("status")!!),
-                        reason = document.getString("reason")
-                    )
-                }.getOrNull()
-            }.sortedByDescending { it.createdAt }
+            .get().await().documents.mapNotNull { it.toTransaction() }
+            .sortedByDescending { it.createdAt }
     }
+
+    override suspend fun allTransactions(): Result<List<CurrencyTransaction>> = runCatching {
+        firestore.collection("transactions").get().await().documents
+            .mapNotNull { it.toTransaction() }
+            .sortedByDescending { it.createdAt }
+    }
+
+    private fun com.google.firebase.firestore.DocumentSnapshot.toTransaction(): CurrencyTransaction? =
+        runCatching {
+            CurrencyTransaction(
+                id = id,
+                userId = getString("userId")!!,
+                side = TradeSide.valueOf(getString("side")!!),
+                baseCurrency = getString("baseCurrency")!!,
+                quoteCurrency = getString("quoteCurrency")!!,
+                amount = BigDecimal(getString("amount")!!),
+                referenceRate = BigDecimal(getString("referenceRate")!!),
+                appliedRate = BigDecimal(getString("appliedRate")!!),
+                deviationPercent = BigDecimal(getString("deviationPercent")!!),
+                createdAt = getLong("createdAt")!!,
+                status = TradeStatus.valueOf(getString("status")!!),
+                reason = getString("reason")
+            )
+        }.getOrNull()
 }

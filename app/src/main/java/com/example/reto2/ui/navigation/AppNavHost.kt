@@ -5,12 +5,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.reto2.ui.auth.AuthForm
 import com.example.reto2.ui.auth.AuthViewModel
-import com.example.reto2.ui.auth.SignedInScreen
+import com.example.reto2.ui.audit.AdminAuditScreen
+import com.example.reto2.ui.audit.AdminAuditViewModel
+import com.example.reto2.ui.audit.AuditFilter
 import com.example.reto2.ui.exchange.ExchangeScreen
 import com.example.reto2.ui.exchange.ExchangeViewModel
 
@@ -44,19 +54,36 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 { viewModel.submit(true) }, { navController.popBackStack() })
         }
         composable(SIGNED_IN) {
-            val exchangeViewModel: ExchangeViewModel = viewModel()
-            val exchange = exchangeViewModel.state.collectAsStateWithLifecycle().value
-            ExchangeScreen(
-                state = exchange,
-                onAmountChanged = exchangeViewModel::amountChanged,
-                onCurrencyChanged = exchangeViewModel::currencyChanged,
-                onRefresh = exchangeViewModel::refreshRate,
-                onTrade = exchangeViewModel::trade,
-                onLogout = {
-                    viewModel.logout()
-                    navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
+            when {
+                state.roleLoading -> Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Text("Cargando permisos", modifier = Modifier.padding(top = 12.dp))
                 }
-            )
+                state.isAdmin -> {
+                    val auditViewModel: AdminAuditViewModel = viewModel()
+                    val audit = auditViewModel.state.collectAsStateWithLifecycle().value
+                    AdminAuditScreen(audit, auditViewModel::filterChanged, auditViewModel::reload, {
+                        viewModel.logout()
+                        navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
+                    })
+                }
+                else -> {
+                    val exchangeViewModel: ExchangeViewModel = viewModel()
+                    val exchange = exchangeViewModel.state.collectAsStateWithLifecycle().value
+                    ExchangeScreen(
+                        state = exchange,
+                        onAmountChanged = exchangeViewModel::amountChanged,
+                        onCurrencyChanged = exchangeViewModel::currencyChanged,
+                        onRefresh = exchangeViewModel::refreshRate,
+                        onTrade = exchangeViewModel::trade,
+                        onLogout = {
+                            viewModel.logout()
+                            navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
+                        }
+                    )
+                }
+            }
         }
     }
 }
