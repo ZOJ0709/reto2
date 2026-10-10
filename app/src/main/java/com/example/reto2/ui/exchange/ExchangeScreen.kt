@@ -66,11 +66,15 @@ fun ExchangeScreen(
                 when {
                     state.loadingRate -> CircularProgressIndicator()
                     state.rate != null -> Text(
-                        "${state.rate.value.stripTrailingZeros().toPlainString()}\n${state.rate.source}",
-                        style = MaterialTheme.typography.titleLarge,
+                        state.rate.value.stripTrailingZeros().toPlainString(),
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     else -> Text("Sin cotización disponible", color = MaterialTheme.colorScheme.error)
+                }
+                state.rate?.let {
+                    Text("Fuente: ${it.source}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary)
                 }
                 TextButtonCompat(onClick = onRefresh, label = "Actualizar")
             }

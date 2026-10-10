@@ -19,7 +19,7 @@ class FinnhubFinanceRepository(
 
     override suspend fun latestRate(base: String, quote: String): Result<FxRate> = runCatching {
         runCatching { finnhubRate(base, quote) }.getOrElse { primaryError ->
-            runCatching { frankfurterRate(base, quote, primaryError) }.getOrElse { fallbackError ->
+            runCatching { frankfurterRate(base, quote) }.getOrElse { fallbackError ->
                 throw IllegalStateException(
                     "No hay cotización. Finnhub: ${primaryError.message ?: "error de conexión"}. " +
                         "Frankfurter: ${fallbackError.message ?: "error de conexión"}"
@@ -50,7 +50,7 @@ class FinnhubFinanceRepository(
         }
     }
 
-    private fun frankfurterRate(base: String, quote: String, primaryError: Throwable): FxRate {
+    private fun frankfurterRate(base: String, quote: String): FxRate {
         val url = URL("https://api.frankfurter.dev/v2/rate/$base/$quote")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -65,8 +65,7 @@ class FinnhubFinanceRepository(
             val json = JSONObject(body)
             val value = BigDecimal(json.get("rate").toString())
             require(value.signum() > 0) { "Frankfurter devolvió una tasa no válida" }
-            val reason = primaryError.message?.substringBefore('.') ?: "sin acceso"
-            FxRate(base, quote, value, System.currentTimeMillis(), "Frankfurter · respaldo de $reason")
+            FxRate(base, quote, value, System.currentTimeMillis(), "Frankfurter")
         } finally {
             connection.disconnect()
         }
@@ -81,8 +80,11 @@ class FinnhubFinanceRepository(
         rate: FxRate
     ): Result<CurrencyTransaction> = runCatching {
         require(amount.signum() > 0) { "Ingresa una cantidad mayor que cero" }
+        val balance = userBalance(userId).getOrThrow()
+        val hasSufficientUsd = side != TradeSide.SELL || amount <= balance
         val appliedRate = rate.value
         val withinLimit = DeviationRule.isAllowed(appliedRate, rate.value)
+        val successful = withinLimit && hasSufficientUsd
         val transaction = CurrencyTransaction(
             id = UUID.randomUUID().toString(),
             userId = userId,
@@ -94,8 +96,12 @@ class FinnhubFinanceRepository(
             appliedRate = appliedRate,
             deviationPercent = DeviationRule.deviationPercent(appliedRate, rate.value),
             createdAt = System.currentTimeMillis(),
-            status = if (withinLimit) TradeStatus.SUCCESS else TradeStatus.REJECTED,
-            reason = if (withinLimit) null else "La tasa superó el límite permitido de 2,5 %"
+            status = if (successful) TradeStatus.SUCCESS else TradeStatus.REJECTED,
+            reason = when {
+                !withinLimit -> "La tasa superó el límite permitido de 2,5 %"
+                !hasSufficientUsd -> "Saldo USD insuficiente para vender esa cantidad"
+                else -> null
+            }
         )
         val data = mapOf(
             "userId" to transaction.userId,
@@ -124,6 +130,16 @@ class FinnhubFinanceRepository(
             .get().await().documents.mapNotNull { it.toTransaction() }
             .sortedByDescending { it.createdAt }
     }
+
+    override suspend fun userBalance(userId: String): Result<BigDecimal> =
+        userTransactions(userId).map { transactions ->
+            transactions.asSequence()
+                .filter { it.status == TradeStatus.SUCCESS }
+                .fold(BigDecimal.ZERO) { balance, transaction ->
+                    if (transaction.side == TradeSide.BUY) balance + transaction.amount
+                    else balance - transaction.amount
+                }
+        }
 
     override suspend fun allTransactions(): Result<List<CurrencyTransaction>> = runCatching {
         firestore.collection("transactions").get().await().documents

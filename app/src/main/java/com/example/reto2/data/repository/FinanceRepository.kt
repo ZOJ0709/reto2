@@ -23,5 +23,6 @@ interface FinanceRepository {
         rate: FxRate
     ): Result<CurrencyTransaction>
     suspend fun userTransactions(userId: String): Result<List<CurrencyTransaction>>
+    suspend fun userBalance(userId: String): Result<BigDecimal>
     suspend fun allTransactions(): Result<List<CurrencyTransaction>>
 }

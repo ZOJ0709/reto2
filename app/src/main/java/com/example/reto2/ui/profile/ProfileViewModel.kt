@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.reto2.data.repository.CloudinaryProfileRepository
+import com.example.reto2.data.repository.FinanceRepository
+import com.example.reto2.data.repository.FinnhubFinanceRepository
 import com.example.reto2.data.repository.ProfileRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
@@ -19,11 +21,13 @@ data class ProfileUiState(
     val photoUrl: String? = null,
     val uploading: Boolean = false,
     val error: String? = null,
-    val message: String? = null
+    val message: String? = null,
+    val usdBalance: String = "0"
 )
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: ProfileRepository = CloudinaryProfileRepository()
+    private val financeRepository: FinanceRepository = FinnhubFinanceRepository()
     private val auth = FirebaseAuth.getInstance()
     private val resolver: ContentResolver = application.contentResolver
     private val _state = MutableStateFlow(ProfileUiState())
@@ -33,6 +37,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         auth.currentUser?.uid?.let { userId ->
             viewModelScope.launch {
                 repository.photoUrl(userId).onSuccess { url -> _state.update { it.copy(photoUrl = url) } }
+                financeRepository.userBalance(userId).onSuccess { balance ->
+                    _state.update { it.copy(usdBalance = balance.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()) }
+                }.onFailure { error ->
+                    _state.update { it.copy(error = error.message ?: "No se pudo cargar el balance") }
+                }
             }
         }
     }

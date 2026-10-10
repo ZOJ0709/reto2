@@ -4,9 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -41,13 +41,18 @@ fun ProfileScreen(
                 model = state.photoUrl,
                 contentDescription = "Foto de perfil",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth(0.55f).clip(CircleShape)
+                modifier = Modifier.size(144.dp).clip(CircleShape)
             )
         } else {
             Text("Sin foto de perfil", color = MaterialTheme.colorScheme.tertiary)
         }
         Spacer(Modifier.height(20.dp))
         Text(email, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(24.dp))
+        Text("Balance simulado en USD", style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.tertiary)
+        Text("\$ ${state.usdBalance}", style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(20.dp))
         Button(onClick = onChoosePhoto, enabled = !state.uploading) {
             if (state.uploading) CircularProgressIndicator()
