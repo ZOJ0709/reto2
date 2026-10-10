@@ -11,6 +11,7 @@ class FirestoreRoleRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : RoleRepository {
     override suspend fun isAdmin(userId: String): Result<Boolean> = runCatching {
-        firestore.collection("admins").document(userId).get().await().exists()
+        val singularCollection = firestore.collection("admin").document(userId).get().await().exists()
+        singularCollection || firestore.collection("admins").document(userId).get().await().exists()
     }
 }
