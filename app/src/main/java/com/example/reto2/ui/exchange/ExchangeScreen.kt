@@ -1,5 +1,8 @@
 package com.example.reto2.ui.exchange
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -17,10 +22,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.example.reto2.data.model.CurrencyTransaction
 import com.example.reto2.data.model.TradeSide
 import java.text.DateFormat
@@ -33,13 +44,40 @@ fun ExchangeScreen(
     onCurrencyChanged: (String) -> Unit,
     onRefresh: () -> Unit,
     onTrade: (TradeSide) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    profilePhotoUrl: String?,
+    profileUploading: Boolean,
+    profileMessage: String?,
+    profileError: String?,
+    onChoosePhoto: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Reto FX", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            OutlinedButton(onClick = onLogout) { Text("Salir") }
+            Column {
+                Text("Reto FX", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Compra y vende divisas", color = MaterialTheme.colorScheme.tertiary)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (profilePhotoUrl.isNullOrBlank()) {
+                    Text("FX", modifier = Modifier.size(42.dp).clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(12.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
+                } else {
+                    AsyncImage(
+                        model = profilePhotoUrl,
+                        contentDescription = "Foto de perfil",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(42.dp).clip(CircleShape)
+                    )
+                }
+                TextButton(onClick = onChoosePhoto, enabled = !profileUploading) {
+                    Text(if (profileUploading) "Subiendo…" else "Foto")
+                }
+                OutlinedButton(onClick = onLogout) { Text("Salir") }
+            }
         }
+        profileMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        profileError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Spacer(Modifier.height(14.dp))
         Text("Operaciones simuladas", color = MaterialTheme.colorScheme.tertiary)
         Spacer(Modifier.height(12.dp))
