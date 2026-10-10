@@ -17,7 +17,12 @@ data class CurrencyTransaction(
     val deviationPercent: BigDecimal,
     val createdAt: Long,
     val status: TradeStatus,
-    val reason: String? = null
+    val reason: String? = null,
+    val inputAmount: BigDecimal = amount,
+    val inputCurrency: String = baseCurrency,
+    val outputAmount: BigDecimal = amount,
+    val outputCurrency: String = quoteCurrency,
+    val usdBalanceDelta: BigDecimal? = null
 )
 
 object DeviationRule {

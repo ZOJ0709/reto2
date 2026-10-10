@@ -6,7 +6,16 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return signedIn() && (
+        exists(/databases/$(database)/documents/admin/$(request.auth.uid))
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    match /admin/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      // Admin roles are provisioned manually with Firebase Console/Admin SDK.
+      allow write: if false;
     }
 
     match /admins/{userId} {
@@ -20,12 +29,21 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'userId', 'side', 'baseCurrency', 'quoteCurrency', 'amount', 'amountValue',
           'referenceRate', 'referenceRateValue', 'appliedRate', 'appliedRateValue',
-          'deviationPercent', 'deviationPercentValue', 'createdAt', 'status', 'reason'
+          'deviationPercent', 'deviationPercentValue', 'createdAt', 'status', 'reason',
+          'inputAmount', 'inputAmountValue', 'inputCurrency', 'outputAmount', 'outputAmountValue',
+          'outputCurrency', 'usdBalanceDelta', 'usdBalanceDeltaValue'
         ])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.side in ['BUY', 'SELL']
         && request.resource.data.amountValue is number
         && request.resource.data.amountValue > 0
+        && request.resource.data.inputAmountValue is number
+        && request.resource.data.inputAmountValue > 0
+        && request.resource.data.inputCurrency is string
+        && request.resource.data.outputAmountValue is number
+        && request.resource.data.outputAmountValue > 0
+        && request.resource.data.outputCurrency is string
+        && request.resource.data.usdBalanceDeltaValue is number
         && request.resource.data.referenceRateValue is number
         && request.resource.data.referenceRateValue > 0
         && request.resource.data.appliedRateValue is number
@@ -38,7 +56,7 @@ service cloud.firestore {
           || (request.resource.data.status == 'REJECTED'
             && (request.resource.data.appliedRateValue < request.resource.data.referenceRateValue * 0.975
               || request.resource.data.appliedRateValue > request.resource.data.referenceRateValue * 1.025
-              || request.resource.data.reason == 'Saldo USD insuficiente para vender esa cantidad'))
+              || request.resource.data.reason == 'Saldo USD insuficiente para completar esa operación'))
         );
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow update, delete: if false;

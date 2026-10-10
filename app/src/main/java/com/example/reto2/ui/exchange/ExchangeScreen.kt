@@ -83,20 +83,27 @@ fun ExchangeScreen(
         OutlinedTextField(
             value = state.amount,
             onValueChange = onAmountChanged,
-            label = { Text("Cantidad en USD") },
+            label = { Text(amountLabel(state.quoteCurrency)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         state.rate?.let { rate ->
-            val total = state.amount.toBigDecimalOrNull()?.multiply(rate.value)
-            if (total != null) Text("Recibirás aprox. ${total.stripTrailingZeros().toPlainString()} ${rate.quote}")
+            val amount = state.amount.toBigDecimalOrNull()
+            if (amount != null) {
+                val buyOutput = if (rate.quote == "COP") amount else amount.multiply(rate.value)
+                val buyPaid = if (rate.quote == "COP") amount.multiply(rate.value) else amount
+                val sellOutput = if (rate.quote == "COP") amount.multiply(rate.value)
+                    else amount.divide(rate.value, 8, java.math.RoundingMode.HALF_UP)
+                Text("Compra: pagas ${buyPaid.fmt()} ${if (rate.quote == "COP") "COP" else "USD"} · recibes ${buyOutput.fmt()} ${if (rate.quote == "COP") "USD" else rate.quote}")
+                Text("Venta: entregas ${amount.fmt()} ${if (rate.quote == "COP") "USD" else rate.quote} · recibes ${sellOutput.fmt()} ${if (rate.quote == "COP") "COP" else "USD"}")
+            }
         }
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = { onTrade(TradeSide.BUY) }, enabled = !state.submitting && state.rate != null,
-                modifier = Modifier.weight(1f)) { Text("Comprar USD") }
+                modifier = Modifier.weight(1f)) { Text("Comprar ${if (state.quoteCurrency == "COP") "USD" else state.quoteCurrency}") }
             OutlinedButton(onClick = { onTrade(TradeSide.SELL) }, enabled = !state.submitting && state.rate != null,
-                modifier = Modifier.weight(1f)) { Text("Vender USD") }
+                modifier = Modifier.weight(1f)) { Text("Vender ${if (state.quoteCurrency == "COP") "USD" else state.quoteCurrency}") }
         }
         if (state.submitting) CircularProgressIndicator(Modifier.padding(top = 8.dp))
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
@@ -119,7 +126,7 @@ private fun TextButtonCompat(onClick: () -> Unit, label: String) {
 private fun TransactionRow(transaction: CurrencyTransaction) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            Text("${if (transaction.side == TradeSide.BUY) "Compra" else "Venta"} ${transaction.amount} ${transaction.baseCurrency}",
+            Text("${if (transaction.side == TradeSide.BUY) "Compra" else "Venta"} · ${transaction.inputAmount.fmt()} ${transaction.inputCurrency} → ${transaction.outputAmount.fmt()} ${transaction.outputCurrency}",
                 fontWeight = FontWeight.SemiBold)
             Text("${transaction.quoteCurrency}: ${transaction.appliedRate} · desviación ${transaction.deviationPercent}%")
             Text("${transaction.status} · ${DateFormat.getDateTimeInstance().format(Date(transaction.createdAt))}",
@@ -127,3 +134,7 @@ private fun TransactionRow(transaction: CurrencyTransaction) {
         }
     }
 }
+
+private fun amountLabel(currency: String) = if (currency == "COP") "Cantidad en USD" else "USD al comprar · $currency al vender"
+
+private fun java.math.BigDecimal.fmt() = stripTrailingZeros().toPlainString()

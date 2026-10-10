@@ -82,7 +82,7 @@ private fun AuditTransactionCard(transaction: CurrencyTransaction) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                "${if (transaction.side.name == "BUY") "Compra" else "Venta"} · ${transaction.amount} ${transaction.baseCurrency}",
+                "${if (transaction.side.name == "BUY") "Compra" else "Venta"} · ${transaction.inputAmount.stripTrailingZeros().toPlainString()} ${transaction.inputCurrency} → ${transaction.outputAmount.stripTrailingZeros().toPlainString()} ${transaction.outputCurrency}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )

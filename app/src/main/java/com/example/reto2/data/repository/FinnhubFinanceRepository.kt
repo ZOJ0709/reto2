@@ -81,7 +81,31 @@ class FinnhubFinanceRepository(
     ): Result<CurrencyTransaction> = runCatching {
         require(amount.signum() > 0) { "Ingresa una cantidad mayor que cero" }
         val balance = userBalance(userId).getOrThrow()
-        val hasSufficientUsd = side != TradeSide.SELL || amount <= balance
+        val isUsdCop = quote == "COP"
+        val inputCurrency = if (isUsdCop && side == TradeSide.BUY) "COP"
+            else if (isUsdCop || side == TradeSide.BUY) "USD" else quote
+        val inputAmount = if (isUsdCop && side == TradeSide.BUY) amount.multiply(rate.value) else amount
+        val outputAmount = when {
+            isUsdCop && side == TradeSide.BUY -> amount
+            isUsdCop -> amount.multiply(rate.value)
+            side == TradeSide.BUY -> amount.multiply(rate.value)
+            else -> amount.divide(rate.value, 8, java.math.RoundingMode.HALF_UP)
+        }
+        val outputCurrency = when {
+            isUsdCop && side == TradeSide.BUY -> "USD"
+            isUsdCop -> "COP"
+            side == TradeSide.BUY -> quote
+            else -> "USD"
+        }
+        val usdBalanceDelta = when {
+            isUsdCop && side == TradeSide.BUY -> amount
+            isUsdCop -> amount.negate()
+            side == TradeSide.BUY -> amount.negate()
+            else -> outputAmount
+        }
+        val requiresUsdBalance = (isUsdCop && side == TradeSide.SELL) || (!isUsdCop && side == TradeSide.BUY)
+        val usdDebit = if (isUsdCop && side == TradeSide.SELL) amount else if (!isUsdCop && side == TradeSide.BUY) amount else BigDecimal.ZERO
+        val hasSufficientUsd = !requiresUsdBalance || usdDebit <= balance
         val appliedRate = rate.value
         val withinLimit = DeviationRule.isAllowed(appliedRate, rate.value)
         val successful = withinLimit && hasSufficientUsd
@@ -91,7 +115,7 @@ class FinnhubFinanceRepository(
             side = side,
             baseCurrency = base,
             quoteCurrency = quote,
-            amount = amount,
+            amount = if (isUsdCop || side == TradeSide.SELL) amount else outputAmount,
             referenceRate = rate.value,
             appliedRate = appliedRate,
             deviationPercent = DeviationRule.deviationPercent(appliedRate, rate.value),
@@ -99,9 +123,14 @@ class FinnhubFinanceRepository(
             status = if (successful) TradeStatus.SUCCESS else TradeStatus.REJECTED,
             reason = when {
                 !withinLimit -> "La tasa superó el límite permitido de 2,5 %"
-                !hasSufficientUsd -> "Saldo USD insuficiente para vender esa cantidad"
+                !hasSufficientUsd -> "Saldo USD insuficiente para completar esa operación"
                 else -> null
-            }
+            },
+            inputAmount = inputAmount,
+            inputCurrency = inputCurrency,
+            outputAmount = outputAmount,
+            outputCurrency = outputCurrency,
+            usdBalanceDelta = usdBalanceDelta
         )
         val data = mapOf(
             "userId" to transaction.userId,
@@ -118,7 +147,15 @@ class FinnhubFinanceRepository(
             "deviationPercentValue" to transaction.deviationPercent.toDouble(),
             "createdAt" to transaction.createdAt,
             "status" to transaction.status.name,
-            "reason" to transaction.reason
+            "reason" to transaction.reason,
+            "inputAmount" to transaction.inputAmount.toPlainString(),
+            "inputAmountValue" to transaction.inputAmount.toDouble(),
+            "inputCurrency" to transaction.inputCurrency,
+            "outputAmount" to transaction.outputAmount.toPlainString(),
+            "outputAmountValue" to transaction.outputAmount.toDouble(),
+            "outputCurrency" to transaction.outputCurrency,
+            "usdBalanceDelta" to transaction.usdBalanceDelta!!.toPlainString(),
+            "usdBalanceDeltaValue" to transaction.usdBalanceDelta.toDouble()
         )
         firestore.collection("transactions").document(transaction.id).set(data).await()
         transaction
@@ -136,8 +173,7 @@ class FinnhubFinanceRepository(
             transactions.asSequence()
                 .filter { it.status == TradeStatus.SUCCESS }
                 .fold(BigDecimal.ZERO) { balance, transaction ->
-                    if (transaction.side == TradeSide.BUY) balance + transaction.amount
-                    else balance - transaction.amount
+                    balance + (transaction.usdBalanceDelta ?: if (transaction.side == TradeSide.BUY) transaction.amount else transaction.amount.negate())
                 }
         }
 
@@ -161,7 +197,12 @@ class FinnhubFinanceRepository(
                 deviationPercent = BigDecimal(getString("deviationPercent")!!),
                 createdAt = getLong("createdAt")!!,
                 status = TradeStatus.valueOf(getString("status")!!),
-                reason = getString("reason")
+                reason = getString("reason"),
+                inputAmount = getString("inputAmount")?.let(::BigDecimal) ?: BigDecimal(getString("amount")!!),
+                inputCurrency = getString("inputCurrency") ?: getString("baseCurrency")!!,
+                outputAmount = getString("outputAmount")?.let(::BigDecimal) ?: BigDecimal(getString("amount")!!),
+                outputCurrency = getString("outputCurrency") ?: getString("quoteCurrency")!!,
+                usdBalanceDelta = getString("usdBalanceDelta")?.let(::BigDecimal)
             )
         }.getOrNull()
 }

@@ -71,7 +71,7 @@ class ExchangeViewModel(
             return
         }
         if (amount == null || amount.signum() <= 0) {
-            _state.update { it.copy(error = "Ingresa una cantidad válida en USD") }
+            _state.update { it.copy(error = "Ingresa una cantidad válida en ${inputCurrency(_state.value.quoteCurrency, side)}") }
             return
         }
         val currency = _state.value.quoteCurrency
@@ -102,6 +102,9 @@ class ExchangeViewModel(
             )
         }
     }
+
+    private fun inputCurrency(currency: String, side: TradeSide): String =
+        if (currency == "COP" || side == TradeSide.BUY) "USD" else currency
 
     private fun loadTransactions() {
         val userId = auth.currentUser?.uid ?: return
