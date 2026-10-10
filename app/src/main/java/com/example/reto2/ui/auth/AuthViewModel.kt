@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class AuthUiState(
     val email: String = "",
     val password: String = "",
+    val confirmPassword: String = "",
     val user: User? = null,
     val isAdmin: Boolean = false,
     val roleLoading: Boolean = false,
@@ -35,6 +36,7 @@ class AuthViewModel(
 
     fun emailChanged(value: String) = _state.update { it.copy(email = value, error = null) }
     fun passwordChanged(value: String) = _state.update { it.copy(password = value, error = null) }
+    fun confirmPasswordChanged(value: String) = _state.update { it.copy(confirmPassword = value, error = null) }
 
     fun submit(register: Boolean) {
         val current = _state.value
@@ -44,6 +46,10 @@ class AuthViewModel(
         }
         if (register && current.password.length < 6) {
             _state.update { it.copy(error = "La contraseña debe tener al menos 6 caracteres") }
+            return
+        }
+        if (register && current.password != current.confirmPassword) {
+            _state.update { it.copy(error = "Las contraseñas no coinciden") }
             return
         }
         viewModelScope.launch {

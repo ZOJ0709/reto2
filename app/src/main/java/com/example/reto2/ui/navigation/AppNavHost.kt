@@ -48,6 +48,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 }
             }
             AuthForm(state, false, viewModel::emailChanged, viewModel::passwordChanged,
+                viewModel::confirmPasswordChanged,
                 { viewModel.submit(false) }, { navController.navigate(REGISTER) })
         }
         composable(REGISTER) {
@@ -57,6 +58,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 }
             }
             AuthForm(state, true, viewModel::emailChanged, viewModel::passwordChanged,
+                viewModel::confirmPasswordChanged,
                 { viewModel.submit(true) }, { navController.popBackStack() })
         }
         composable(SIGNED_IN) {

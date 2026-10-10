@@ -28,6 +28,7 @@ fun AuthForm(
     registering: Boolean,
     onEmail: (String) -> Unit,
     onPassword: (String) -> Unit,
+    onConfirmPassword: (String) -> Unit,
     onSubmit: () -> Unit,
     onSwitch: () -> Unit,
     modifier: Modifier = Modifier
@@ -56,6 +57,14 @@ fun AuthForm(
             singleLine = true, visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
+        if (registering) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.confirmPassword, onValueChange = onConfirmPassword,
+                label = { Text("Confirmar contraseña") }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
+            )
+        }
         state.error?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
