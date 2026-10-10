@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /admins/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      // Admin roles are provisioned manually with Firebase Console/Admin SDK.
+      allow write: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'side', 'baseCurrency', 'quoteCurrency', 'amount', 'amountValue',
+          'referenceRate', 'referenceRateValue', 'appliedRate', 'appliedRateValue',
+          'deviationPercent', 'deviationPercentValue', 'createdAt', 'status', 'reason'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.side in ['BUY', 'SELL']
+        && request.resource.data.amountValue is number
+        && request.resource.data.amountValue > 0
+        && request.resource.data.referenceRateValue is number
+        && request.resource.data.referenceRateValue > 0
+        && request.resource.data.appliedRateValue is number
+        && request.resource.data.deviationPercentValue is number
+        && request.resource.data.createdAt is int
+        && (
+          (request.resource.data.status == 'SUCCESS'
+            && request.resource.data.appliedRateValue >= request.resource.data.referenceRateValue * 0.975
+            && request.resource.data.appliedRateValue <= request.resource.data.referenceRateValue * 1.025)
+          || (request.resource.data.status == 'REJECTED'
+            && (request.resource.data.appliedRateValue < request.resource.data.referenceRateValue * 0.975
+              || request.resource.data.appliedRateValue > request.resource.data.referenceRateValue * 1.025))
+        );
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn() && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['email', 'photoUrl', 'createdAt']);
+      allow update: if signedIn() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoUrl']);
+      allow delete: if false;
+    }
+  }
+}

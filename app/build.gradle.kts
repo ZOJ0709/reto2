@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
 }
+
+val localEnv = Properties().apply {
+    rootProject.file(".env").takeIf { it.isFile }?.inputStream()?.use { load(it) }
+}
+
+fun envValue(name: String): String = localEnv.getProperty(name, "")
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 android {
     namespace = "com.example.reto2"
@@ -16,6 +26,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "FINNHUB_API_KEY", "\"${envValue("FINNHUB_API_KEY")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -33,6 +44,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -50,6 +62,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation("com.cloudinary:cloudinary-android:3.0.2") // verifica la versión actual
     testImplementation(libs.junit)

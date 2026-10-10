@@ -11,6 +11,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.reto2.ui.auth.AuthForm
 import com.example.reto2.ui.auth.AuthViewModel
 import com.example.reto2.ui.auth.SignedInScreen
+import com.example.reto2.ui.exchange.ExchangeScreen
+import com.example.reto2.ui.exchange.ExchangeViewModel
 
 private const val LOGIN = "login"
 private const val REGISTER = "register"
@@ -42,10 +44,19 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 { viewModel.submit(true) }, { navController.popBackStack() })
         }
         composable(SIGNED_IN) {
-            SignedInScreen(state.user?.email.orEmpty()) {
-                viewModel.logout()
-                navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
-            }
+            val exchangeViewModel: ExchangeViewModel = viewModel()
+            val exchange = exchangeViewModel.state.collectAsStateWithLifecycle().value
+            ExchangeScreen(
+                state = exchange,
+                onAmountChanged = exchangeViewModel::amountChanged,
+                onCurrencyChanged = exchangeViewModel::currencyChanged,
+                onRefresh = exchangeViewModel::refreshRate,
+                onTrade = exchangeViewModel::trade,
+                onLogout = {
+                    viewModel.logout()
+                    navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
+                }
+            )
         }
     }
 }
