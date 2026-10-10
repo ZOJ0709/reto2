@@ -24,6 +24,7 @@ import com.example.reto2.ui.audit.AuditFilter
 import com.example.reto2.ui.exchange.ExchangeScreen
 import com.example.reto2.ui.exchange.ExchangeViewModel
 import com.example.reto2.ui.profile.ProfileViewModel
+import com.example.reto2.ui.profile.ProfileScreen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +32,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 private const val LOGIN = "login"
 private const val REGISTER = "register"
 private const val SIGNED_IN = "signed_in"
+private const val PROFILE = "profile"
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -75,11 +77,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 else -> {
                     val exchangeViewModel: ExchangeViewModel = viewModel()
                     val exchange = exchangeViewModel.state.collectAsStateWithLifecycle().value
-                    val profileViewModel: ProfileViewModel = viewModel()
-                    val profile = profileViewModel.state.collectAsStateWithLifecycle().value
-                    val photoPicker = rememberLauncherForActivityResult(
-                        ActivityResultContracts.PickVisualMedia()
-                    ) { uri -> uri?.let(profileViewModel::upload) }
                     ExchangeScreen(
                         state = exchange,
                         onAmountChanged = exchangeViewModel::amountChanged,
@@ -90,16 +87,25 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                             viewModel.logout()
                             navController.navigate(LOGIN) { popUpTo(SIGNED_IN) { inclusive = true } }
                         },
-                        profilePhotoUrl = profile.photoUrl,
-                        profileUploading = profile.uploading,
-                        profileMessage = profile.message,
-                        profileError = profile.error,
-                        onChoosePhoto = {
-                            photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }
+                        onOpenProfile = { navController.navigate(PROFILE) }
                     )
                 }
             }
+        }
+        composable(PROFILE) {
+            val profileViewModel: ProfileViewModel = viewModel()
+            val profile = profileViewModel.state.collectAsStateWithLifecycle().value
+            val photoPicker = rememberLauncherForActivityResult(
+                ActivityResultContracts.PickVisualMedia()
+            ) { uri -> uri?.let(profileViewModel::upload) }
+            ProfileScreen(
+                email = state.user?.email.orEmpty(),
+                state = profile,
+                onChoosePhoto = {
+                    photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
