@@ -18,6 +18,17 @@ class FinnhubFinanceRepository(
 ) : FinanceRepository {
 
     override suspend fun latestRate(base: String, quote: String): Result<FxRate> = runCatching {
+        runCatching { finnhubRate(base, quote) }.getOrElse { primaryError ->
+            runCatching { frankfurterRate(base, quote, primaryError) }.getOrElse { fallbackError ->
+                throw IllegalStateException(
+                    "No hay cotización. Finnhub: ${primaryError.message ?: "error de conexión"}. " +
+                        "Frankfurter: ${fallbackError.message ?: "error de conexión"}"
+                )
+            }
+        }
+    }
+
+    private fun finnhubRate(base: String, quote: String): FxRate {
         require(BuildConfig.FINNHUB_API_KEY.isNotBlank()) { "Configura FINNHUB_API_KEY en .env" }
         val url = URL("https://finnhub.io/api/v1/forex/rates?base=$base")
         val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -26,15 +37,36 @@ class FinnhubFinanceRepository(
             readTimeout = 10_000
             setRequestProperty("X-Finnhub-Token", BuildConfig.FINNHUB_API_KEY)
         }
-        try {
+        return try {
             val status = connection.responseCode
             val body = (if (status in 200..299) connection.inputStream else connection.errorStream)
                 .bufferedReader().use { it.readText() }
             check(status in 200..299) { "Finnhub respondió HTTP $status" }
-            val rates = JSONObject(body).getJSONObject("quote")
-            val value = BigDecimal(rates.get(quote).toString())
+            val value = BigDecimal(JSONObject(body).getJSONObject("quote").get(quote).toString())
             require(value.signum() > 0) { "Finnhub devolvió una tasa no válida" }
-            FxRate(base, quote, value, System.currentTimeMillis())
+            FxRate(base, quote, value, System.currentTimeMillis(), "Finnhub")
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun frankfurterRate(base: String, quote: String, primaryError: Throwable): FxRate {
+        val url = URL("https://api.frankfurter.dev/v2/rate/$base/$quote")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 10_000
+            readTimeout = 10_000
+        }
+        return try {
+            val status = connection.responseCode
+            val body = (if (status in 200..299) connection.inputStream else connection.errorStream)
+                .bufferedReader().use { it.readText() }
+            check(status in 200..299) { "Frankfurter respondió HTTP $status" }
+            val json = JSONObject(body)
+            val value = BigDecimal(json.get("rate").toString())
+            require(value.signum() > 0) { "Frankfurter devolvió una tasa no válida" }
+            val reason = primaryError.message?.substringBefore('.') ?: "sin acceso"
+            FxRate(base, quote, value, System.currentTimeMillis(), "Frankfurter · respaldo de $reason")
         } finally {
             connection.disconnect()
         }

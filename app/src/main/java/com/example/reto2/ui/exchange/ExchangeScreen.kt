@@ -66,8 +66,8 @@ fun ExchangeScreen(
                 when {
                     state.loadingRate -> CircularProgressIndicator()
                     state.rate != null -> Text(
-                        state.rate.value.stripTrailingZeros().toPlainString(),
-                        style = MaterialTheme.typography.headlineMedium,
+                        "${state.rate.value.stripTrailingZeros().toPlainString()}\n${state.rate.source}",
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     else -> Text("Sin cotización disponible", color = MaterialTheme.colorScheme.error)
