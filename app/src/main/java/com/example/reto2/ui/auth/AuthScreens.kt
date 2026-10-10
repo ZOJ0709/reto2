@@ -29,6 +29,7 @@ fun AuthForm(
     onEmail: (String) -> Unit,
     onPassword: (String) -> Unit,
     onConfirmPassword: (String) -> Unit,
+    onGoogleSignIn: () -> Unit,
     onSubmit: () -> Unit,
     onSwitch: () -> Unit,
     modifier: Modifier = Modifier
@@ -74,6 +75,9 @@ fun AuthForm(
             if (state.loading) CircularProgressIndicator()
             else Text(if (registering) "Crear cuenta" else "Iniciar sesión")
         }
+        androidx.compose.material3.OutlinedButton(
+            onClick = onGoogleSignIn, enabled = !state.loading, modifier = Modifier.fillMaxWidth()
+        ) { Text("Continuar con Google") }
         TextButton(onClick = onSwitch, enabled = !state.loading, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(if (registering) "Ya tengo una cuenta" else "Crear una cuenta")
         }

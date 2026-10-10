@@ -2,9 +2,12 @@ package com.example.reto2.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +31,12 @@ import com.example.reto2.ui.profile.ProfileScreen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 private const val LOGIN = "login"
 private const val REGISTER = "register"
@@ -39,6 +48,36 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val viewModel: AuthViewModel = viewModel()
     val state = viewModel.state.collectAsStateWithLifecycle().value
+    val context = LocalContext.current
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+    val coroutineScope = rememberCoroutineScope()
+    val googleSignIn: () -> Unit = {
+        viewModel.googleSignInStarted()
+        coroutineScope.launch {
+            try {
+                val googleOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(context.getString(com.example.reto2.R.string.default_web_client_id))
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val request = GetCredentialRequest.Builder().addCredentialOption(googleOption).build()
+                val response = credentialManager.getCredential(context, request)
+                val credential = response.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    viewModel.googleSignIn(GoogleIdTokenCredential.createFrom(credential.data).idToken)
+                } else {
+                    viewModel.googleSignInFailed("Google no devolvió una credencial válida")
+                }
+            } catch (error: Exception) {
+                viewModel.googleSignInFailed(
+                    error.localizedMessage ?: "No se pudo iniciar sesión con Google"
+                )
+            }
+        }
+        Unit
+    }
     NavHost(navController = navController, startDestination = if (state.user == null) LOGIN else SIGNED_IN,
         modifier = modifier) {
         composable(LOGIN) {
@@ -49,6 +88,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             }
             AuthForm(state, false, viewModel::emailChanged, viewModel::passwordChanged,
                 viewModel::confirmPasswordChanged,
+                googleSignIn,
                 { viewModel.submit(false) }, { navController.navigate(REGISTER) })
         }
         composable(REGISTER) {
@@ -59,6 +99,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             }
             AuthForm(state, true, viewModel::emailChanged, viewModel::passwordChanged,
                 viewModel::confirmPasswordChanged,
+                googleSignIn,
                 { viewModel.submit(true) }, { navController.popBackStack() })
         }
         composable(SIGNED_IN) {

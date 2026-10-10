@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 
@@ -24,6 +25,10 @@ class FirebaseAuthRepository(
 
     override suspend fun register(email: String, password: String) =
         call { auth.createUserWithEmailAndPassword(email, password).await().user }
+
+    override suspend fun googleLogin(idToken: String) = call {
+        auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await().user
+    }
 
     override fun logout() = auth.signOut()
 

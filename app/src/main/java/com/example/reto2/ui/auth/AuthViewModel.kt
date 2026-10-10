@@ -38,6 +38,23 @@ class AuthViewModel(
     fun passwordChanged(value: String) = _state.update { it.copy(password = value, error = null) }
     fun confirmPasswordChanged(value: String) = _state.update { it.copy(confirmPassword = value, error = null) }
 
+    fun googleSignIn(idToken: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, error = null) }
+            repository.googleLogin(idToken).fold(
+                onSuccess = { user ->
+                    _state.update { it.copy(user = user, loading = false, roleLoading = true) }
+                    loadRole(user.uid)
+                },
+                onFailure = { error -> _state.update { it.copy(error = error.message, loading = false) } }
+            )
+        }
+    }
+
+    fun googleSignInFailed(message: String) = _state.update { it.copy(error = message, loading = false) }
+
+    fun googleSignInStarted() = _state.update { it.copy(error = null, loading = true) }
+
     fun submit(register: Boolean) {
         val current = _state.value
         if (current.email.isBlank() || current.password.isBlank()) {
