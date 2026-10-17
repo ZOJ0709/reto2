@@ -31,7 +31,10 @@ class CloudinaryProfileRepository(
     ): Result<String> = runCatching {
         require(BuildConfig.CLOUDINARY_CLOUD_NAME.isNotBlank()) { "Configura CLOUDINARY_CLOUD_NAME en .env" }
         require(BuildConfig.CLOUDINARY_UPLOAD_PRESET.isNotBlank()) { "Configura CLOUDINARY_UPLOAD_PRESET en .env" }
-        val mimeType = contentResolver.getType(uri)?.takeIf { it.startsWith("image/") }
+        // Foto de la cámara = archivo JPEG propio; galería = se consulta al sistema.
+        val mimeType = (if (uri.scheme == "file") "image/jpeg" else contentResolver.getType(uri))
+            ?.takeIf { it.startsWith("image/") }
+            ?: error("Selecciona un archivo de imagen")
             ?: error("Selecciona un archivo de imagen")
         val imageBytes = contentResolver.openInputStream(uri)?.use { input ->
             val output = ByteArrayOutputStream()

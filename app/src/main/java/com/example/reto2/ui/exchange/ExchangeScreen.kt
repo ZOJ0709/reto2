@@ -20,11 +20,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.reto2.data.model.CurrencyTransaction
 import com.example.reto2.data.model.TradeSide
+import com.example.reto2.ui.hardware.ShakeEffect
+import com.example.reto2.ui.hardware.vibrate
 import java.text.DateFormat
 import java.util.Date
 
@@ -38,6 +46,21 @@ fun ExchangeScreen(
     onLogout: () -> Unit,
     onOpenProfile: () -> Unit
 ) {
+    val context = LocalContext.current
+
+    // Vibra al terminar una operación (guardada o rechazada).
+    // Arranca con el valor actual: al volver a la pantalla no repite la vibración.
+    var handled by remember { mutableIntStateOf(state.operationCount) }
+    LaunchedEffect(state.operationCount) {
+        if (state.operationCount != handled) {
+            handled = state.operationCount
+            vibrate(context)
+        }
+    }
+
+    // Agitar el teléfono actualiza la tasa (acelerómetro).
+    ShakeEffect { if (!state.loadingRate) onRefresh() }
+
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
@@ -77,6 +100,8 @@ fun ExchangeScreen(
                         color = MaterialTheme.colorScheme.tertiary)
                 }
                 TextButtonCompat(onClick = onRefresh, label = "Actualizar")
+                Text("Agita el teléfono para actualizar", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -93,7 +118,7 @@ fun ExchangeScreen(
                 val buyOutput = if (rate.quote == "COP") amount else amount.multiply(rate.value)
                 val buyPaid = if (rate.quote == "COP") amount.multiply(rate.value) else amount
                 val sellOutput = if (rate.quote == "COP") amount.multiply(rate.value)
-                    else amount.divide(rate.value, 8, java.math.RoundingMode.HALF_UP)
+                else amount.divide(rate.value, 8, java.math.RoundingMode.HALF_UP)
                 Text("Compra: pagas ${buyPaid.fmt()} ${if (rate.quote == "COP") "COP" else "USD"} · recibes ${buyOutput.fmt()} ${if (rate.quote == "COP") "USD" else rate.quote}")
                 Text("Venta: entregas ${amount.fmt()} ${if (rate.quote == "COP") "USD" else rate.quote} · recibes ${sellOutput.fmt()} ${if (rate.quote == "COP") "COP" else "USD"}")
             }

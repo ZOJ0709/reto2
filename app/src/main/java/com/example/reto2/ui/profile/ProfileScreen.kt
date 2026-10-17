@@ -1,5 +1,6 @@
 package com.example.reto2.ui.profile
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,12 +26,41 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.reto2.ui.hardware.CameraCaptureScreen
+import java.io.File
 
 @Composable
 fun ProfileScreen(
     email: String,
     state: ProfileUiState,
     onChoosePhoto: () -> Unit,
+    onBack: () -> Unit,
+    onPhotoCaptured: (File) -> Unit = {}
+) {
+    var showCamera by remember { mutableStateOf(false) }
+
+    // "Atrás" cierra la cámara y no la pantalla de perfil.
+    BackHandler(enabled = showCamera) { showCamera = false }
+
+    if (showCamera) {
+        CameraCaptureScreen(
+            onPhotoTaken = { file ->
+                showCamera = false
+                onPhotoCaptured(file)
+            },
+            onClose = { showCamera = false }
+        )
+    } else {
+        ProfileContent(email, state, onChoosePhoto, { showCamera = true }, onBack)
+    }
+}
+
+@Composable
+private fun ProfileContent(
+    email: String,
+    state: ProfileUiState,
+    onChoosePhoto: () -> Unit,
+    onOpenCamera: () -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -57,6 +91,9 @@ fun ProfileScreen(
         Button(onClick = onChoosePhoto, enabled = !state.uploading) {
             if (state.uploading) CircularProgressIndicator()
             else Text(if (state.photoUrl == null) "Agregar foto" else "Cambiar foto")
+        }
+        OutlinedButton(onClick = onOpenCamera, enabled = !state.uploading) {
+            Text("Tomar foto con la cámara")
         }
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

@@ -154,7 +154,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 onChoosePhoto = {
                     photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onPhotoCaptured = profileViewModel::uploadFile
             )
         }
     }

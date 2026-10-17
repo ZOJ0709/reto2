@@ -62,4 +62,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             )
         }
     }
+    // Foto tomada con la cámara: se sube igual que una de la galería.
+    fun uploadFile(file: java.io.File) = upload(Uri.fromFile(file))
+
 }

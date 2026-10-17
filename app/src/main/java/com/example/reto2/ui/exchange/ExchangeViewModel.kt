@@ -25,7 +25,8 @@ data class ExchangeUiState(
     val loadingRate: Boolean = false,
     val submitting: Boolean = false,
     val message: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    val operationCount: Int = 0 // sube cuando termina una operación; dispara la vibración
 )
 
 class ExchangeViewModel(
@@ -94,6 +95,7 @@ class ExchangeViewModel(
                             transactions = history,
                             amount = "",
                             submitting = false,
+                            operationCount = it.operationCount + 1,
                             message = if (transaction.status == TradeStatus.SUCCESS) "Operación simulada guardada" else transaction.reason
                         )
                     }

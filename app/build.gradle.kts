@@ -78,4 +78,9 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    val cx = "1.4.2"
+    implementation("androidx.camera:camera-core:$cx")
+    implementation("androidx.camera:camera-camera2:$cx")
+    implementation("androidx.camera:camera-lifecycle:$cx")
+    implementation("androidx.camera:camera-view:$cx")
 }

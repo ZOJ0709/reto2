@@ -34,5 +34,4 @@ Thumbs.db
 *.log
 
 # Configuración local de Firebase (contiene identificadores y API key del cliente)
-app/google-services.json
 .firebase/

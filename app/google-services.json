@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "221932997537",
+    "project_id": "reton2-87867",
+    "storage_bucket": "reton2-87867.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221932997537:android:1dcb838a65931a28bed9e0",
+        "android_client_info": {
+          "package_name": "com.example.reto2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "221932997537-pmdfkngj4tbm8adk90ekm6lmemgf5c4c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.reto2",
+            "certificate_hash": "277e651ab86d20e75b49530e26925c08681eb3cf"
+          }
+        },
+        {
+          "client_id": "221932997537-otmdjcoshn4o1425r6asm2p67gbrovnj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDoCzvrmjJBhQ5vMWhXKuzQyWSTn20y_A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "221932997537-otmdjcoshn4o1425r6asm2p67gbrovnj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
